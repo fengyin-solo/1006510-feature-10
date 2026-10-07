@@ -1,5 +1,6 @@
 <template>
-  <div class="app-shell">
+  <RouterView v-if="isPrintRoute" />
+  <div v-else class="app-shell">
     <aside class="app-side">
       <h1 class="app-title">城市供水厂制水运行与供水调度管理平台</h1>
       <nav class="nav-list">
@@ -19,9 +20,16 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useRoute } from 'vue-router'
+
 import { useSessionStore } from '@/stores/session'
 
 const store = useSessionStore()
+const route = useRoute()
+
+// 单据打印页需要整页输出（含背面），不套侧边栏外壳。
+const isPrintRoute = computed(() => route.path.startsWith('/filter/print'))
 
 const navItems = [{ label: "运营概览", path: "/" }, { label: "水厂台账", path: "/plant" }, { label: "取水泵组", path: "/intakepump" }, { label: "混凝加药", path: "/dosing" }, { label: "沉淀池运行", path: "/sedimentation" }, { label: "滤池反冲洗", path: "/filter" }, { label: "消毒加氯", path: "/disinfection" }, { label: "清水池调蓄", path: "/clearwell" }, { label: "出厂水质检测", path: "/quality" }, { label: "供水调度指令", path: "/dispatch" }, { label: "管网压力监测", path: "/pressure" }, { label: "二次供水泵房", path: "/secondary" }, { label: "水表抄见", path: "/meterread" }, { label: "爆管抢修", path: "/burstrepair" }, { label: "原水监测", path: "/sourcewater" }, { label: "阀门井巡检", path: "/valve" }, { label: "药剂领用", path: "/chem" }, { label: "设备维护", path: "/equipmaint" }, { label: "值班交接班", path: "/shift" }]
 </script>

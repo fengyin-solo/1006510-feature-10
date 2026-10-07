@@ -29,9 +29,23 @@ function readStorage(): Record<string, EntryRow[]> {
 
 let cache: Record<string, EntryRow[]> | null = null
 
+// 旧版滤池示例数据是占位文本（如「滤池反冲洗样例1」），既没有真实数值也没有分档字段，
+// 会让按月份/分档规则的新页面整月空白。旧版滤池页没有登记入口，存在的只能是旧种子，识别后整体换新示例。
+function migrateFilterSeed(stored: Record<string, EntryRow[]>): Record<string, EntryRow[]> {
+  const legacy = stored.filter
+  const isLegacySeed =
+    Array.isArray(legacy) &&
+    legacy.length > 0 &&
+    legacy.every((row) => String(row['滤料类型'] ?? '').startsWith('滤池反冲洗样例'))
+  if (!isLegacySeed) {
+    return stored
+  }
+  return { ...stored, filter: clone(SEED_ROWS.filter ?? []) }
+}
+
 export function allRows(): Record<string, EntryRow[]> {
   if (cache === null) {
-    cache = readStorage()
+    cache = migrateFilterSeed(readStorage())
   }
   return cache
 }

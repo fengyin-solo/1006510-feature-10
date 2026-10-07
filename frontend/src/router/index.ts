@@ -6,6 +6,7 @@ const Intakepump = () => import('@/views/intakepump/index.vue')
 const Dosing = () => import('@/views/dosing/index.vue')
 const Sedimentation = () => import('@/views/sedimentation/index.vue')
 const Filter = () => import('@/views/filter/index.vue')
+const FilterPrint = () => import('@/views/filter/print.vue')
 const Disinfection = () => import('@/views/disinfection/index.vue')
 const Clearwell = () => import('@/views/clearwell/index.vue')
 const Quality = () => import('@/views/quality/index.vue')
@@ -29,6 +30,7 @@ const router = createRouter({
     { path: '/dosing', name: 'dosing', component: Dosing },
     { path: '/sedimentation', name: 'sedimentation', component: Sedimentation },
     { path: '/filter', name: 'filter', component: Filter },
+    { path: '/filter/print/:id', name: 'filter-print', component: FilterPrint },
     { path: '/disinfection', name: 'disinfection', component: Disinfection },
     { path: '/clearwell', name: 'clearwell', component: Clearwell },
     { path: '/quality', name: 'quality', component: Quality },
