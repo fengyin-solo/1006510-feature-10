@@ -29,7 +29,18 @@ function readStorage(): Record<string, EntryRow[]> {
 
 let cache: Record<string, EntryRow[]> | null = null
 
+// 演练用：安排下一次读取抛错一次，用来验证页面的取数失败提示与重试。
+let failNextRead = false
+
+export function armNextReadFailure(): void {
+  failNextRead = true
+}
+
 export function allRows(): Record<string, EntryRow[]> {
+  if (failNextRead) {
+    failNextRead = false
+    throw new Error('本地台账读取失败（模拟一次取不到数）')
+  }
   if (cache === null) {
     cache = readStorage()
   }

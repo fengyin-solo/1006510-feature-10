@@ -1,4 +1,10 @@
 import { MODULE_BY_KEY } from '@/data/modules'
+import {
+  FILTER_NUMERIC_FIELDS,
+  findDuplicateFilterNo,
+  normalizeFilterNo,
+  validateFilterDraft,
+} from '@/data/filter-rules'
 import { allRows, listRows, resetRows, saveRows } from '@/data/local-store'
 import type { ActionResult, EntryRow, ModuleMeta, OverviewResult, PageResult } from '@/data/types'
 
@@ -26,6 +32,79 @@ export function filterRows(rows: EntryRow[], filters: Record<string, string>): E
 export function listEntries(key: string, filters: Record<string, string> = {}): PageResult {
   const matched = filterRows(listRows(key), filters)
   return { items: matched, total: matched.length, page: 1, size: matched.length }
+}
+
+type DraftValues = Record<string, string>
+
+// 各模块的登记规则挂在这里：滤池单的必填、分档、历时上限都在 filter-rules 里，
+// 服务层只负责按规则扣单/落库，页面不做业务判断。
+function validateDraft(key: string, draft: DraftValues): { field: string; message: string }[] {
+  if (key === 'filter') {
+    return validateFilterDraft(draft)
+  }
+  return []
+}
+
+// 登记一条新记录。必填缺失、超出区间、编号重复都在这里扣下，返回逐条问题。
+export function createEntry(key: string, draft: DraftValues): ActionResult {
+  const meta = moduleMeta(key)
+  const clean: DraftValues = {}
+  for (const field of meta.fields) {
+    clean[field] = (draft[field] ?? '').trim()
+  }
+
+  const issues = validateDraft(key, clean)
+  if (issues.length > 0) {
+    return {
+      ok: false,
+      message: `单据已扣下，请补正后再提交：${issues
+        .map((item) => `【${item.field}】${item.message}`)
+        .join('；')}`,
+    }
+  }
+
+  const rows = listRows(key)
+
+  if (key === 'filter') {
+    clean['滤池编号'] = normalizeFilterNo(clean['滤池编号'])
+    const duplicate = findDuplicateFilterNo(rows, clean['滤池编号'])
+    if (duplicate) {
+      // 同一条滤池编号重复提交只记一次：直接返回已登记那条，不再新增。
+      return {
+        ok: true,
+        id: Number(duplicate.id),
+        message: `滤池编号 ${clean['滤池编号']} 已登记过（记录 #${duplicate.id}），本次重复提交未重复记账`,
+      }
+    }
+  }
+
+  const nextId = rows.reduce((max, row) => Math.max(max, Number(row.id) || 0), 0) + 1
+  const firstStatus = meta.statuses[0]
+  const lastStatus = meta.statuses[meta.statuses.length - 1]
+
+  const values: EntryRow = {
+    id: nextId,
+    status: firstStatus,
+    pending: firstStatus !== lastStatus,
+    abnormal: false,
+  }
+  for (const field of meta.fields) {
+    if (clean[field] === '') {
+      continue
+    }
+    if (key === 'filter' && FILTER_NUMERIC_FIELDS.includes(field)) {
+      values[field] = Number(clean[field])
+    } else {
+      values[field] = clean[field]
+    }
+  }
+  // 滤池状态这个台账栏目与流程首态保持一致，列表与详情都不会再翻出空栏。
+  if (key === 'filter') {
+    values['滤池状态'] = firstStatus
+  }
+
+  saveRows(key, [...rows, values])
+  return { ok: true, id: nextId, message: `${meta.entity}已登记，编号 #${nextId}，当前状态「${firstStatus}」` }
 }
 
 export function runAction(key: string, id: number, action: string): ActionResult {

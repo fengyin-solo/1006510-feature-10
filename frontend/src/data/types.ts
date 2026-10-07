@@ -30,6 +30,7 @@ export type PageResult = {
 export type ActionResult = {
   ok: boolean
   message: string
+  id?: number
 }
 
 export type OverviewResult = {
